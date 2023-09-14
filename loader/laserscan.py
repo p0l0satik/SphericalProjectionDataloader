@@ -1,15 +1,18 @@
 import numpy as np
-from torch import int16
 import open3d as o3d
+
+from pathlib import Path
+
+import loader.constants as constants
 
 class LaserScan:
   """Class that contains LaserS
-  can with x,y,z,r"""
-  EXTENSIONS_SCAN = ['.bin', ".pcd", ".npy", ".label"]
+  can with x,y,z,r,sem_label"""
 
-  def __init__(self,  H=64, W=1024, fov_up=3.0, fov_down=-25.0):
-    self.proj_H = H
-    self.proj_W = W
+  def __init__(self,  heigh=64, width=1024, fov_up=3.0, fov_down=-25.0):
+    """Function take as input desirable height and width of the image, and fov of the lidar rays """
+    self.proj_height = heigh
+    self.proj_width = width
     self.proj_fov_up = fov_up
     self.proj_fov_down = fov_down
     self.reset()
@@ -19,24 +22,24 @@ class LaserScan:
     self.points = np.zeros((0, 3), dtype=np.float32)        # [m, 3]: x, y, z
 
     # projected range image - [H,W] range (-1 is no data)
-    self.proj_range = np.full((self.proj_H, self.proj_W), -1, dtype=np.float32)
+    self.proj_range = np.full((self.proj_height, self.proj_width), -1, dtype=np.float32)
 
     # unprojected range (list of depths for each point)
     self.unproj_range = np.zeros((0, 1), dtype=np.float32)
 
     # projected point cloud xyz - [H,W,3] xyz coord (-1 is no data)
-    self.proj_xyz = np.full((self.proj_H, self.proj_W, 3), -1, dtype=np.float32)
+    self.proj_xyz = np.full((self.proj_height, self.proj_width, 3), -1, dtype=np.float32)
 
     # projected index (for each pixel, what I am in the pointcloud)
     # [H,W] index (-1 is no data)
-    self.proj_idx = np.full((self.proj_H, self.proj_W), -1, dtype=np.int32)
+    self.proj_idx = np.full((self.proj_height, self.proj_width), -1, dtype=np.int32)
 
     # for each point, where it is in the range image
     self.proj_x = np.zeros((0, 1), dtype=np.float32)        # [m, 1]: x
     self.proj_y = np.zeros((0, 1), dtype=np.float32)        # [m, 1]: y
 
     # mask containing for each pixel, if it contains a point or not
-    self.proj_mask = np.zeros((self.proj_H, self.proj_W),
+    self.proj_mask = np.zeros((self.proj_height, self.proj_width),
                               dtype=np.int32)       # [H,W] mask
 
   def size(self):
@@ -46,24 +49,18 @@ class LaserScan:
   def __len__(self):
     return self.size()
 
-  def open_scan(self, filename):
+  def open_scan(self, filename: Path):
     """ Open raw scan and fill in attributes
     """
     # reset just in case there was an open structure
     self.reset()
 
-    # check filename is string
-    if not isinstance(filename, str):
-      raise TypeError("Filename should be string type, "
-                      "but was {type}".format(type=str(type(filename))))
-
     # if all goes well, open pointcloud
-    if filename.endswith(self.EXTENSIONS_SCAN[0]):
+    if filename.suffix == constants.POINTCLOUD_EXT[0]:
       scan = np.fromfile(filename, dtype=np.float32)
       scan = scan.reshape((-1, 4))
       points = scan[:, 0:3]    # get xyz
-
-    elif filename.endswith(self.EXTENSIONS_SCAN[1]):
+    elif filename.suffix == constants.POINTCLOUD_EXT[1]:
       pcd = o3d.io.read_point_cloud(filename)
       points = np.asarray(pcd.points)    # get xyz
     else:
@@ -112,18 +109,16 @@ class LaserScan:
     proj_y = 1.0 - (pitch + abs(fov_down)) / fov        # in [0.0, 1.0]
 
     # scale to image size using angular resolution
-    proj_x *= self.proj_W                              # in [0.0, W]
-    proj_y *= self.proj_H                              # in [0.0, H]
+    proj_x *= self.proj_width                              # in [0.0, W]
+    proj_y *= self.proj_height                              # in [0.0, H]
 
     # round and clamp for use as index
     proj_x = np.floor(proj_x)
-    proj_x = np.minimum(self.proj_W - 1, proj_x)
-    proj_x = np.maximum(0, proj_x).astype(np.int32)   # in [0,W-1]
+    proj_x = np.clip(proj_x, 0, self.proj_width-1).astype(np.int32) # in [0,W-1]
     self.proj_x = np.copy(proj_x)  # store a copy in orig order
 
     proj_y = np.floor(proj_y)
-    proj_y = np.minimum(self.proj_H - 1, proj_y)
-    proj_y = np.maximum(0, proj_y).astype(np.int32)   # in [0,H-1]
+    proj_y = np.clip(proj_y, 0, self.proj_height - 1).astype(np.int32)   # in [0,H-1]
     self.proj_y = np.copy(proj_y)  # stope a copy in original order
 
     # copy of depth in original order
@@ -144,32 +139,19 @@ class LaserScan:
     self.proj_idx[proj_y, proj_x] = indices
     self.proj_mask = (self.proj_idx > 0).astype(np.float32)
 
-
-class SemLaserScan(LaserScan):
-  """Class that contains LaserScan with x,y,z,r,sem_label,sem_color_label,inst_label,inst_color_label"""
-  EXTENSIONS_LABEL = ['.label']
-
-  def __init__(self, H=64, W=1024, fov_up=3.0, fov_down=-25.0):
-    super(SemLaserScan, self).__init__(H, W, fov_up, fov_down)
-
-  def open_label(self, filename):
-    """ Open raw scan and fill in attributes
+  def open_label(self, filename: Path):
+    """ Open labels and so label rpojection
     """
     # if all goes well, open label
-    if filename.endswith(self.EXTENSIONS_SCAN[2]):
+    if filename.suffix == constants.LABELS_EXT[0]:
       label = np.load(filename)
-    elif filename.endswith(self.EXTENSIONS_SCAN[3]):
+    elif filename.suffix == constants.LABELS_EXT[1]:
       label = np.fromfile(filename, dtype=np.uint32)
     else:
       raise RuntimeError("Label filename extension is not valid scan file.")
     
     label = label.reshape((-1))
-    # set it
-    return self.set_label(label)
-
-  def set_label(self, label):
-    """ Set points for label not from file but from np
-    """
+    
     # check label makes sense
     if not isinstance(label, np.ndarray):
       raise TypeError("Label should be numpy array")
@@ -184,7 +166,7 @@ class SemLaserScan(LaserScan):
     # sanity check
     assert((sem_label + (inst_label << 16) == label).all())
 
-    proj_sem_label = np.zeros((self.proj_H, self.proj_W), dtype=np.int32)
+    proj_sem_label = np.zeros((self.proj_height, self.proj_width), dtype=np.int32)
     mask = self.proj_idx >= 0 
     proj_sem_label[mask] = sem_label[self.proj_idx[mask]]
     return sem_label, proj_sem_label
