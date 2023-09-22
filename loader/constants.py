@@ -9,3 +9,8 @@ POINT_CLOUDS = "velodyne"
 # File extensions
 POINTCLOUD_EXT = ['.bin', ".pcd"]
 LABELS_EXT = [".npy", ".label"]
+
+# RANSAC parameters
+RANSAC_N = 3
+RANSAC_THRESHOLD = 0.05
+RANSAC_N_ITER = 100

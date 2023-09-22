@@ -26,7 +26,6 @@ def visualise(loader, show_projected_labels=False):
         pcd.colors = o3d.utility.Vector3dVector(colors)
 
         o3d.visualization.draw_geometries([pcd])
-        break
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
