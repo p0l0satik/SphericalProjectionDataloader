@@ -9,12 +9,13 @@ class LaserScan:
   """Class that contains LaserS
   can with x,y,z,r,sem_label"""
 
-  def __init__(self,  heigh=64, width=1024, fov_up=3.0, fov_down=-25.0):
+  def __init__(self,  heigh=64, width=1024, fov_up=3.0, fov_down=-25.0, visualise_ransac=False):
     """Function take as input desirable height and width of the image, and fov of the lidar rays """
     self.proj_height = heigh
     self.proj_width = width
     self.proj_fov_up = fov_up
     self.proj_fov_down = fov_down
+    self.visualise_ransac = visualise_ransac
     self.reset()
 
   def reset(self):
@@ -139,7 +140,7 @@ class LaserScan:
     self.proj_idx[proj_y, proj_x] = indices
     self.proj_mask = (self.proj_idx > 0).astype(np.float32)
 
-  def open_label(self, filename: Path):
+  def open_label(self, filename: Path, ransac=True):
     """ Open labels and so label rpojection
     """
     # if all goes well, open label
@@ -165,8 +166,49 @@ class LaserScan:
 
     # sanity check
     assert((sem_label + (inst_label << 16) == label).all())
+    if ransac:
+        sem_label = ransac_filtering(points=self.points, labels=sem_label, visualisation=self.visualise_ransac)
 
     proj_sem_label = np.zeros((self.proj_height, self.proj_width), dtype=np.int32)
     mask = self.proj_idx >= 0 
     proj_sem_label[mask] = sem_label[self.proj_idx[mask]]
     return sem_label, proj_sem_label
+
+def ransac_filtering(points, labels, visualisation = False):
+    # init new labels new label
+    new_labels = np.zeros_like(labels)
+    # calculating unique label values
+    unique_labels = np.unique(labels)
+
+    for label_inst in unique_labels:
+        # skip emty points
+        if label_inst == 0:
+            continue
+        
+        # indexes of labels we need
+        filtered_idx = np.argwhere(labels==label_inst)
+        if len(filtered_idx) < constants.RANSAC_N:
+            continue
+        # filtered_lables = labels[filtered_idx]
+        filtered_point = points[filtered_idx,:].squeeze()
+        # creating pointcloud from points belonging to filtered labels and 
+        # fitting plane with RANSAC
+        pcd_f = o3d.geometry.PointCloud()
+        pcd_f.points = o3d.utility.Vector3dVector(filtered_point)
+        _, inliers = pcd_f.segment_plane(distance_threshold=constants.RANSAC_THRESHOLD,
+                                         ransac_n=constants.RANSAC_N,
+                                         num_iterations=constants.RANSAC_N_ITER)
+        # adding filtered labels as "planes"
+        new_labels[filtered_idx[inliers]] = 1
+
+    if visualisation:
+        filtered =  o3d.geometry.PointCloud()
+        filtered.points = o3d.utility.Vector3dVector(points)
+        filtered_colors = np.zeros_like(points)
+        filtered_colors[:, 0] = 255 * new_labels
+        filtered_colors[:, 1] = 255 * labels
+        filtered.colors = o3d.utility.Vector3dVector(filtered_colors)
+        o3d.visualization.draw_geometries([filtered])
+
+    return new_labels
+    
