@@ -7,7 +7,7 @@ import loader.constants as constants
 from loader.laserscan import LaserScan
 
 class SphericalProjectionKitti(Dataset):
-    def __init__(self, main_directory, length, visualise_ransac=False) -> None:
+    def __init__(self, main_directory, length, visualise_ransac=True) -> None:
         super().__init__()
         self.ls = LaserScan(visualise_ransac=visualise_ransac)
         self.length = length
