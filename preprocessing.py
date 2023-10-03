@@ -59,7 +59,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     dataset = SphericalProjectionKittiPreprocessor(
-        Path(args.dataset), length=args.dataset_len, visualise_ransac=False
+        Path(args.dataset), length=args.dataset_len, use_ransac=True, visualise_ransac=False
     )
     prep_loader = DataLoader(dataset, batch_size=1, shuffle=False)
     preprocess(loader=prep_loader, save_path=Path(args.save_path), compress=False)
