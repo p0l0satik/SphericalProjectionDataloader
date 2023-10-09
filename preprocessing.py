@@ -58,13 +58,27 @@ if __name__ == "__main__":
         "--dataset_len", type=int, default=1, help="length of the dataset sequence"
     )
 
-    parser.add_argument('--no_ransac', dest='no_ransac', action='store_true', help="enables ransac filtering of outliers for plane labels; ransac is enabled by default")
+    parser.add_argument(
+        "--no_ransac",
+        dest="no_ransac",
+        action="store_true",
+        help="enables ransac filtering of outliers for plane labels; ransac is enabled by default",
+    )
 
-    parser.add_argument('--visualise_ransac', dest='visualise_ransac', action='store_true', help="visualises ransac preprocessing; disabled by default")
+    parser.add_argument(
+        "--visualise_ransac",
+        dest="visualise_ransac",
+        action="store_true",
+        help="visualises ransac preprocessing; disabled by default",
+    )
 
-    parser.add_argument('--no_road', dest='no_road', action='store_true', help="diables adding road labels; road is enabled by default")
+    parser.add_argument(
+        "--no_road",
+        dest="no_road",
+        action="store_true",
+        help="diables adding road labels; road is enabled by default",
+    )
 
-    
     parser.set_defaults(use_ransac=False, add_road=False, visualise_ransac=False)
 
     args = parser.parse_args()
@@ -72,8 +86,8 @@ if __name__ == "__main__":
     dataset = SphericalProjectionKittiPreprocessor(
         Path(args.dataset),
         length=args.dataset_len,
-        use_ransac= not args.no_ransac,
-        add_road=not args.no_road, 
+        use_ransac=not args.no_ransac,
+        add_road=not args.no_road,
         visualise_ransac=args.visualise_ransac,
     )
     prep_loader = DataLoader(dataset, batch_size=1, shuffle=False)
