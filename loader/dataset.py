@@ -15,9 +15,6 @@ class SphericalProjectionKitti(Dataset):
     def __getitem__(self, idx):
         cloud = np.load(self.load_path / "scan_{0:06d}.npz".format(idx))
         return (
-            cloud["points"],
-            cloud["labels"],
             cloud["proj_points"],
             cloud["proj_labels"],
-            cloud["proj_idx"],
         )
