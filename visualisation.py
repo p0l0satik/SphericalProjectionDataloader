@@ -5,7 +5,7 @@ import argparse
 from torch.utils.data import DataLoader
 from pathlib import Path
 
-from loader.dataloader import SphericalProjectionKitti
+from preparation.preprocessor import SphericalProjectionKittiPreprocessor
 
 
 def visualise(loader, show_projected_labels=False):
@@ -27,13 +27,20 @@ def visualise(loader, show_projected_labels=False):
 
         o3d.visualization.draw_geometries([pcd])
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="examples/data/kitti/00/",
-                    help="path to the dataset main directory")
-    parser.add_argument("--dataset_len", type=int, default=1, help="length of the dataset sequence")
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="examples/data/kitti/00/",
+        help="path to the dataset main directory",
+    )
+    parser.add_argument(
+        "--dataset_len", type=int, default=1, help="length of the dataset sequence"
+    )
     args = parser.parse_args()
 
-    data = SphericalProjectionKitti(Path(args.dataset), length=args.dataset_len)
-    loader = DataLoader(data, batch_size=1, shuffle=False)
-    visualise(loader=loader, show_projected_labels=False)
+    dataset = SphericalProjectionKittiPreprocessor(Path(args.dataset), length=args.dataset_len)
+    prep_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+    visualise(loader=prep_loader, show_projected_labels=False)

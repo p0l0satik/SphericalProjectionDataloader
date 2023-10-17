@@ -3,7 +3,7 @@ import open3d as o3d
 
 from pathlib import Path
 
-import loader.constants as constants
+import preparation.constants as constants
 
 
 class LaserScan:
