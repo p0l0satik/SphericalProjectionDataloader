@@ -20,24 +20,15 @@ def preprocess(loader, save_path, compress=False):
         proj_points = proj_points.detach().numpy().squeeze()
 
         # saving data
-        if compress:
-            np.savez_compressed(
-                save_path / "scan_{0:06d}.npz".format(n),
-                points=points,
-                labels=labels,
-                proj_points=proj_points,
-                proj_labels=proj_labels,
-                proj_idx=proj_idx,
-            )
-        else:
-            np.savez(
-                save_path / "scan_{0:06d}.npz".format(n),
-                points=points,
-                labels=labels,
-                proj_points=proj_points,
-                proj_labels=proj_labels,
-                proj_idx=proj_idx,
-            )
+        save_func = np.savez_compressed if compress else np.savez
+        save_func(
+            save_path / "scan_{0:06d}.npz".format(n),
+            points=points,
+            labels=labels,
+            proj_points=proj_points,
+            proj_labels=proj_labels,
+            proj_idx=proj_idx,
+        )
 
 
 if __name__ == "__main__":
