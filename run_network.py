@@ -44,7 +44,6 @@ if __name__ == "__main__":
     )
 
     train(
-        config.device,
         train_loader,
         validation_loader,
         optimizer=optimizer,
@@ -52,4 +51,4 @@ if __name__ == "__main__":
         config=config,
     )
 
-    validate(device=config.device, test_loader=test, model=model, config=config)
+    validate(test_loader=test, model=model, config=config)
