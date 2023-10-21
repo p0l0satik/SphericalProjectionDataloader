@@ -150,7 +150,7 @@ def train(
         # comparing results with absolute values
         if val_loss < best_val:
             best_val = val_loss
-            model_path = Path(f"{config.path}{config.run_name}_{epoch}")
+            model_path = config.checkpoint_dir / f"{config.run_name}_{epoch}"
             torch.save(model.state_dict(), model_path)
         if train_loss < best_train:
             best_train = train_loss
