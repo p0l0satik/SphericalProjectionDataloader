@@ -1,3 +1,4 @@
+import argparse
 import torch
 
 from torch.utils.data import DataLoader
@@ -9,34 +10,46 @@ from network.config import Config
 from network.common_blocks import get_model_and_optimizer, train, validate
 
 
-class RunConfig(Config):
-    def __init__(self) -> None:
-        super().__init__()
-        self.run_name = "exp_1_basic_unet"
-        self.description = "Basic unet"
-        self.n_epochs = 15
-
-
 if __name__ == "__main__":
-    config = RunConfig()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="runs_configs/exp1_basic.yaml",
+        help="config file for the run",
+    )
+    args = parser.parse_args()
+
+    config = Config(Path(args.config))
     config.prepare()
 
-    device = "cuda:0"
-
-    data = SphericalProjectionKitti(Path("/home/polosatik/mnt/kitti/prep"), length=4541)
-    generator = torch.Generator().manual_seed(42)
+    data = SphericalProjectionKitti(config.dataset_dir, length=config.length)
+    generator = torch.Generator().manual_seed(config.random_seed)
     train_loader, validation_loader, test_loader = random_split(
-        data, [3700, 541, 300], generator=generator
+        data, [config.train_len, config.validation_len, config.test_len], generator=generator
     )
 
-    train_loader = DataLoader(train_loader, batch_size=4, shuffle=True, num_workers=12)
-    validation_loader = DataLoader(validation_loader, batch_size=4, shuffle=True, num_workers=12)
-    test = DataLoader(test_loader, batch_size=4, shuffle=True, num_workers=12)
+    train_loader = DataLoader(
+        train_loader, batch_size=config.batch_size, shuffle=True, num_workers=config.workers
+    )
+    validation_loader = DataLoader(
+        validation_loader, batch_size=config.batch_size, shuffle=True, num_workers=config.workers
+    )
+    test = DataLoader(
+        test_loader, batch_size=config.batch_size, shuffle=True, num_workers=config.workers
+    )
 
     model, optimizer, scheduler = get_model_and_optimizer(
-        device, in_ch=config.inp_channels, num_encoding_blocks=config.num_enc_blocks
+        config.device, in_ch=config.inp_channels, num_encoding_blocks=config.num_enc_blocks
     )
 
-    train(device, train_loader, validation_loader, optimizer=optimizer, model=model, config=config)
+    train(
+        config.device,
+        train_loader,
+        validation_loader,
+        optimizer=optimizer,
+        model=model,
+        config=config,
+    )
 
-    validate(device=device, test_loader=test, model=model, config=config)
+    validate(device=config.device, test_loader=test, model=model, config=config)

@@ -1,29 +1,52 @@
 import wandb
-import os 
+import os
+import yaml
 
 from datetime import datetime
 from torch import nn
+from pathlib import Path
+
 
 class Config:
-    def __init__(self) -> None:
-        self.criterion = nn.CrossEntropyLoss()
-        self.n_epochs = 15
-        self.run_name = ""
-        self.description = ""
-        self.batch_size = 4
-        self.num_enc_blocks = 5
-        self.inp_channels = 3
-        self.dataset = "kitti"
+    def __init__(self, config_path) -> None:
+        with open(config_path, "r") as file:
+            config_file = yaml.safe_load(file)
+
+        self.run_name = config_file["run_name"]
+        self.description = config_file["description"]
+        self.dataset_dir = Path(config_file["dataset_dir"])
+        self.checkpoint_dir = Path(config_file["checkpoint_save_path"])
+        self.wandb_proj = config_file["wandb_project"]
+
+        # network parameters
+        if config_file["parameters"]["criterion_type"] == "CrossEntropyLoss":
+            self.criterion = nn.CrossEntropyLoss()
+        else:
+            raise RuntimeError("No match for criterion type")
+        self.n_epochs = config_file["parameters"]["epochs"]
+        self.num_enc_blocks = config_file["parameters"]["num_encoder_blocks"]
+        self.inp_channels = config_file["parameters"]["input_channels"]
+        self.device = config_file["parameters"]["device"]
+        self.max_classes = config_file["parameters"]["max_classes"]
+
+        # loader parameters
+        self.batch_size = config_file["loader"]["batch_size"]
+        self.workers = config_file["loader"]["workers"]
+        self.dataset = config_file["loader"]["dataset"]
+        self.length = config_file["loader"]["length"]
+        self.train_len = config_file["loader"]["train_len"]
+        self.test_len = config_file["loader"]["test_len"]
+        self.validation_len = config_file["loader"]["validation_len"]
+
+        self.random_seed = config_file["other"]["random_seed"]
         self.curr_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def prepare(self):
-        self.path = f"new_2_chpt/{self.run_name}_{self.curr_time}/"
+        self.checkpoint_dir = self.checkpoint_dir / f"{self.run_name}_{self.curr_time}"
+        # create a directory for checkpoints if not exists
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-        isExist = os.path.exists(self.path)
-        if not isExist:
-            # Create a new directory because it does not exist
-            os.makedirs(self.path)
-
+        # TODO: log all parameters
         wandb_config = dict(
             batch_size=self.batch_size,
             num_blocks=self.num_enc_blocks,
@@ -33,7 +56,7 @@ class Config:
         )
 
         wandb.init(
-            project="PlaneSegmentationImproved",
+            project=self.wandb_proj,
             notes=self.description,
             config=wandb_config,
             mode="online",

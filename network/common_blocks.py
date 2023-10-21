@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torchmetrics import JaccardIndex
 from tqdm import tqdm
 from unet import UNet
+from pathlib import Path
 
 from network.logger import ValidationLogger, TrainLogger
 from network.metrics import SegmentationMetrics
@@ -16,7 +17,7 @@ def get_model_and_optimizer(device, in_ch=3, num_encoding_blocks=5, patience=3):
     np.random.seed(0)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
+    # TODO: move all parameters to config
     unet = UNet(
         in_channels=in_ch,
         out_classes=2,
@@ -36,15 +37,14 @@ def get_model_and_optimizer(device, in_ch=3, num_encoding_blocks=5, patience=3):
     return model, optimizer, scheduler
 
 
-def one_epoch(device, loader, optimizer, model, criterion=None, train_mode=True):
+def one_epoch(config, loader, optimizer, model, criterion=None, train_mode=True):
     running_loss = 0.0
-    max_classes = 2  # TODO move to config
     model.train(train_mode)
     dataset_len = len(loader)
     for data in tqdm(loader):
         inputs, labels = data
-        inputs = torch.tensor(inputs).to(device=device, dtype=torch.float)
-        labels = torch.tensor(labels).to(device=device, dtype=torch.long)
+        inputs = torch.tensor(inputs).to(device=config.device, dtype=torch.float)
+        labels = torch.tensor(labels).to(device=config.device, dtype=torch.long)
 
         if train_mode:
             optimizer.zero_grad()
@@ -52,7 +52,7 @@ def one_epoch(device, loader, optimizer, model, criterion=None, train_mode=True)
         outputs = model(inputs)
         loss = criterion(outputs, labels) + dice_loss(
             F.softmax(outputs, dim=1).float(),
-            F.one_hot(labels, max_classes).permute(0, 3, 1, 2).float(),
+            F.one_hot(labels, config.max_classes).permute(0, 3, 1, 2).float(),
             multiclass=True,
         )
         if train_mode:
@@ -66,14 +66,14 @@ def one_epoch(device, loader, optimizer, model, criterion=None, train_mode=True)
     return loss
 
 
-def validate(device, test_loader, model, config, chpt=""):
+def validate(test_loader, model, config, chpt=""):
     if chpt != "":
         model.load_state_dict(torch.load(chpt))
 
     model.train(False)
-    model.to(device)
+    model.to(config.device)
     starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
-    jaccard = JaccardIndex(num_classes=2)
+    jaccard = JaccardIndex(num_classes=config.max_classes)
     validation_logger = ValidationLogger(config)
 
     metric_calculator = SegmentationMetrics(
@@ -82,8 +82,8 @@ def validate(device, test_loader, model, config, chpt=""):
     with torch.no_grad():
         for i, data in enumerate(test_loader):
             val_inputs, val_labels = data
-            val_inputs = torch.tensor(val_inputs).to(device=device, dtype=torch.float)
-            val_labels = torch.tensor(val_labels).to(device=device, dtype=torch.long)
+            val_inputs = torch.tensor(val_inputs).to(device=config.device, dtype=torch.float)
+            val_labels = torch.tensor(val_labels).to(device=config.device, dtype=torch.long)
 
             # Make predictions for this batch
             starter.record()
@@ -109,7 +109,6 @@ def validate(device, test_loader, model, config, chpt=""):
 
 
 def train(
-    device,
     tl,
     vl,
     optimizer,
@@ -130,7 +129,7 @@ def train(
         # running train
         model.train(True)
         train_loss = one_epoch(
-            device,
+            config.device,
             tl,
             model=model,
             criterion=config.criterion,
@@ -140,7 +139,7 @@ def train(
         # running validation
         with torch.no_grad():
             val_loss = one_epoch(
-                device,
+                config,
                 vl,
                 model=model,
                 criterion=config.criterion,
@@ -151,14 +150,14 @@ def train(
         # comparing results with absolute values
         if val_loss < best_val:
             best_val = val_loss
-            model_path = "{}/{}_{}".format(config.path, config.run_name, epoch)
+            model_path = Path(f"{config.path}{config.run_name}_{epoch}")
             torch.save(model.state_dict(), model_path)
         if train_loss < best_train:
             best_train = train_loss
 
         # Calculating inference time and getting sample prediction
         sample_input, sample_labels = next(iter(vl))
-        sample_input = torch.tensor(sample_input).to(device=device, dtype=torch.float)
+        sample_input = torch.tensor(sample_input).to(device=config.device, dtype=torch.float)
 
         starter, ender = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
         starter.record()
