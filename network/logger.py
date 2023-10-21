@@ -58,9 +58,6 @@ class TrainLogger:
         self.ender = torch.cuda.Event(enable_timing=True)
         self.starter.record()
 
-        total_time = starter.elapsed_time(ender)
-        wandb.log({"total train time": np.mean(np.asarray(total_time))})
-
     def log_epoch_start(self):
         self.epoch += 1
         print(f"EPOCH {self.epoch+1}:")

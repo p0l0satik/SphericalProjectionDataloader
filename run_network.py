@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     device = "cuda:0"
 
-    data = SphericalProjectionKitti(Path("/home/polosatik/mnt/kitti/prep2"), length=4541)
+    data = SphericalProjectionKitti(Path("/home/polosatik/mnt/kitti/prep"), length=4541)
     generator = torch.Generator().manual_seed(42)
     train_loader, validation_loader, test_loader = random_split(
         data, [3700, 541, 300], generator=generator
