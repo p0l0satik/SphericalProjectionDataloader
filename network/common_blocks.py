@@ -129,7 +129,7 @@ def train(
         # running train
         model.train(True)
         train_loss = one_epoch(
-            config.device,
+            config,
             tl,
             model=model,
             criterion=config.criterion,
