@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from torchmetrics import JaccardIndex
 from tqdm import tqdm
 from unet import UNet
-from pathlib import Path
 
 from network.logger import ValidationLogger, TrainLogger
 from network.metrics import SegmentationMetrics

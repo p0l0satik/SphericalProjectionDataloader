@@ -103,7 +103,7 @@ class TrainLogger:
             print(
                 f"""
                 CURRENT ACCURACY train: {train_loss}, validation: {val_loss}  
-                BEST ACCURACY train: {best_loss}, validation: {best_val}  
+                BEST ACCURACY train: {best_val}, validation: {best_val}  
                 inference time: {inference_time}
                 """
             )

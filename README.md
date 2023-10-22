@@ -51,3 +51,20 @@ After the run is configured you can run train with `run_network.py`.
 This script takes only one required parameter - path to your config file. Here is an example:
 
 > python3 run_network --config runs_configs/exp1_basic.yaml
+
+# Visualising results
+
+The results can be visualized with `visualise_prediction.py`. It takes the following parameters.
+##### Required
+- `--chpt` path to your network checkpoint
+- `--dataset` path to the dataset you used to train your network
+- `--config` path to the config you used for network training
+
+#### Optional
+- `--device` by default the network prediction is run on **cpu** for visualizing results on any device. You can change this.
+- `--step` you can skip similar frames of the dataset configuring step. Default value is 5.
+- `--iterations` number of samples you wish to visualise. Default is 1.
+
+An example of visualising script run will produce 3 visualisations (15 samples with step 5) :
+> python3 visualise_prediction.py --chpt exp_2_basic_unet_ransac_14 
+> --dataset dataset/kitti/prep/ransac_01 --iterations 15
