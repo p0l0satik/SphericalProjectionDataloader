@@ -17,12 +17,20 @@ class ValidationLogger:
         self.config = config
 
     def log_one_step(self, curr_time, batch_iou, precision, recall, dice, pixel_accuracy):
-        wandb.log({"test inference": curr_time})
-        wandb.log({"batch IoU": batch_iou})
-        wandb.log({"precision": precision})
-        wandb.log({"recall": recall})
-        wandb.log({"DICE": dice})
-        wandb.log({"pixel accuracy": pixel_accuracy})
+        if self.config.use_wandb:
+            wandb.log({"test inference": curr_time})
+            wandb.log({"batch IoU": batch_iou})
+            wandb.log({"precision": precision})
+            wandb.log({"recall": recall})
+            wandb.log({"DICE": dice})
+            wandb.log({"pixel accuracy": pixel_accuracy})
+        else:
+            print(
+                f"""
+                test inference: {curr_time}, batch IoU: {batch_iou}, precision: {precision} 
+                recall: {recall}, DICE: {dice}, pixel accuracy: {pixel_accuracy}
+                """
+            )
 
         self.mean_IoU += batch_iou / self.config.batch_size
         self.full_time += curr_time
@@ -39,14 +47,24 @@ class ValidationLogger:
         self.mean_dice /= self.iterations
         self.mean_recall /= self.iterations
         self.mean_pixel_accuracy /= self.iterations
+        if self.config.use_wandb:
+            wandb.log({"mean inference": self.mean_time})
+            wandb.log({"mean IoU": self.mean_IoU})
+            wandb.log({"mean precision": self.mean_IoU})
+            wandb.log({"mean recall": self.mean_recall})
+            wandb.log({"mean DICE": self.mean_dice})
+            wandb.log({"mean pixel accuracy": self.mean_pixel_accuracy})
+            wandb.log({"total validation time": self.full_time})
 
-        wandb.log({"mean inference": self.mean_time})
-        wandb.log({"mean IoU": self.mean_IoU})
-        wandb.log({"mean precision": self.mean_IoU})
-        wandb.log({"mean recall": self.mean_recall})
-        wandb.log({"mean DICE": self.mean_dice})
-        wandb.log({"mean pixel accuracy": self.mean_pixel_accuracy})
-        wandb.log({"total validation time": self.full_time})
+        else:
+            print(
+                f"""
+                mean inference: {self.mean_time}, mean IoU: {self.mean_IoU}  
+                mean precision: {self.mean_recall}, mean recall: {self.mean_recall} 
+                mean DICE: {self.mean_dice},  mean pixel accuracy: {self.mean_pixel_accuracy}
+                total validation time: {self.full_time}
+                """
+            )
 
 
 class TrainLogger:
@@ -72,16 +90,23 @@ class TrainLogger:
         labels,
         prediction,
     ):
-        print(f"LOSS train: {train_loss}, validation: {val_loss}")
+        if self.config.use_wandb:
+            print(f"LOSS train: {train_loss}, validation: {val_loss}")
+            wandb.log({"best train accuracy": best_train})
+            wandb.log({"best test accuracy": best_val})
 
-        wandb.log({"best train accuracy": best_train})
-        wandb.log({"best test accuracy": best_val})
+            wandb.log({"current train accuracy": train_loss})
+            wandb.log({"current test accuracy": val_loss})
 
-        wandb.log({"current train accuracy": train_loss})
-        wandb.log({"current test accuracy": val_loss})
-
-        wandb.log({"current inference": inference_time})
-
+            wandb.log({"current inference": inference_time})
+        else:
+            print(
+                f"""
+                CURRENT ACCURACY train: {train_loss}, validation: {val_loss}  
+                BEST ACCURACY train: {best_loss}, validation: {best_val}  
+                inference time: {inference_time}
+                """
+            )
         self.inference_times.append(inference_time)
 
         gt = labels[0].cpu().detach().numpy().astype("int")
@@ -95,12 +120,23 @@ class TrainLogger:
             .round()
             .astype("int")
         )
-        wandb.log({"val view": wandb.Image(prediction_prepared, caption="Validation prediction")})
-        wandb.log({"val gt": wandb.Image(gt, caption="Validation gt")})
+        if self.config.use_wandb:
+            wandb.log(
+                {"val view": wandb.Image(prediction_prepared, caption="Validation prediction")}
+            )
+            wandb.log({"val gt": wandb.Image(gt, caption="Validation gt")})
 
     def log_final(self):
-        wandb.log({"mean inference": np.mean(np.asarray(self.inference_times))})
         self.ender.record()
         torch.cuda.synchronize()
         total_time = self.starter.elapsed_time(self.ender)
-        wandb.log({"total train time": np.mean(np.asarray(total_time))})
+        if self.config.use_wandb:
+            wandb.log({"mean inference": np.mean(np.asarray(self.inference_times))})
+            wandb.log({"total train time": np.mean(np.asarray(total_time))})
+        else:
+            print(
+                f"""
+               mean inference time: {np.mean(np.asarray(self.inference_times))}
+               total time: {total_time}
+               """
+            )

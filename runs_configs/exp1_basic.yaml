@@ -1,7 +1,8 @@
 run_name: "exp_1_basic_unet"
 description: "Basic unet run without ransac"
-wandb_project: "PlaneSegmentationImproved"
-dataset_dir: "/home/polosatik/mnt/kitti/prep" # put your dataset directory here
+use_wandb: False
+wandb_project: "" # put your wandb project name here
+dataset_dir: "" # put your dataset directory here
 checkpoint_save_path: "chpt" # put here the path to the desirable checkpoint directory
 
 parameters:

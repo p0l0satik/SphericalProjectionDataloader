@@ -15,6 +15,7 @@ class Config:
         self.description = config_file["description"]
         self.dataset_dir = Path(config_file["dataset_dir"])
         self.checkpoint_dir = Path(config_file["checkpoint_save_path"])
+        self.use_wandb = config_file["use_wandb"]
         self.wandb_proj = config_file["wandb_project"]
 
         # network parameters
@@ -45,21 +46,22 @@ class Config:
         # create a directory for checkpoints if not exists
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-        # TODO: log all parameters
-        wandb_config = dict(
-            batch_size=self.batch_size,
-            num_blocks=self.num_enc_blocks,
-            inp_channels=self.inp_channels,
-            dataset=self.dataset,
-            n_epochs=self.n_epochs,
-        )
+        if self.use_wandb:
+            # TODO: log all parameters
+            wandb_config = dict(
+                batch_size=self.batch_size,
+                num_blocks=self.num_enc_blocks,
+                inp_channels=self.inp_channels,
+                dataset=self.dataset,
+                n_epochs=self.n_epochs,
+            )
 
-        wandb.init(
-            project=self.wandb_proj,
-            notes=self.description,
-            config=wandb_config,
-            mode="online",
-        )
+            wandb.init(
+                project=self.wandb_proj,
+                notes=self.description,
+                config=wandb_config,
+                mode="online",
+            )
 
-        name = self.run_name + "_" + self.curr_time
-        wandb.run.name = name
+            name = self.run_name + "_" + self.curr_time
+            wandb.run.name = name
