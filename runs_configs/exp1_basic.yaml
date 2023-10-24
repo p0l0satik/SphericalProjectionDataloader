@@ -12,6 +12,12 @@ parameters:
   input_channels: 3
   criterion_type: "CrossEntropyLoss"
   max_classes: 2
+  optimizer_type: AdamW
+  scheduler:
+    factor: 0.1
+    patience: 3
+    threshold: 0.01
+
 
 loader:
   dataset: "kitti"

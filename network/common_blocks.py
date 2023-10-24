@@ -11,27 +11,30 @@ from network.metrics import SegmentationMetrics
 from network.loss_functions import dice_loss
 
 
-def get_model_and_optimizer(device, in_ch=3, num_encoding_blocks=5, patience=3):
+def get_model_and_optimizer(config):
     torch.manual_seed(0)
     np.random.seed(0)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    # TODO: move all parameters to config
     unet = UNet(
-        in_channels=in_ch,
-        out_classes=2,
+        in_channels=config.inp_channels,
+        out_classes=config.max_classes,
         dimensions=2,
-        num_encoding_blocks=num_encoding_blocks,
+        num_encoding_blocks=config.num_enc_blocks,
         normalization="batch",
         upsampling_type="linear",
         padding=True,
         activation="ReLU",
-    ).to(device)
+    ).to(config.device)
     model = unet
 
     optimizer = torch.optim.AdamW(model.parameters())
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.1, patience=patience, threshold=0.01
+        optimizer,
+        mode="min",
+        factor=config.factor,
+        patience=config.patience,
+        threshold=config.threshold,
     )
     return model, optimizer, scheduler
 

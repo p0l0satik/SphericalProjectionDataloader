@@ -19,11 +19,11 @@ def enumerate_with_step(xs, start=0, step=5):
         start += step
 
 
-def visualize_predictions(loader, device, chpt_path, iterations=1, step=5):
-    model, _, _ = get_model_and_optimizer(device=device)
-    model.load_state_dict(torch.load(chpt_path, map_location=torch.device(device)))
+def visualize_predictions(loader, config, chpt_path, iterations=1, step=5):
+    model, _, _ = get_model_and_optimizer(config)
+    model.load_state_dict(torch.load(chpt_path, map_location=torch.device(config.device)))
     model.train(False)
-    model.to(device)
+    model.to(config.device)
     for i, sample in enumerate_with_step(loader, start=0, step=step):
         if i >= iterations:
             return
@@ -43,7 +43,7 @@ def visualize_predictions(loader, device, chpt_path, iterations=1, step=5):
         # pointcloud with GT labels
         o3d.visualization.draw_geometries([pcd])
 
-        inputs = torch.tensor(inputs).to(device=device, dtype=torch.float)
+        inputs = torch.tensor(inputs).to(device=config.device, dtype=torch.float)
         # Getting predictions
         outputs = model(inputs)
 
@@ -102,6 +102,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     config = Config(Path(args.config))
 
+    config.device = args.device
     data = SphericalProjectionKitti(
         Path(args.dataset), length=config.length, return_orig_points=True
     )
@@ -113,7 +114,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_data, batch_size=1, shuffle=False)
     visualize_predictions(
         loader=test_loader,
-        device=args.device,
+        config=config,
         chpt_path=args.chpt,
         iterations=args.iterations,
         step=args.step,

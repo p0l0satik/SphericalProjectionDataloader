@@ -39,9 +39,7 @@ if __name__ == "__main__":
         test_loader, batch_size=config.batch_size, shuffle=True, num_workers=config.workers
     )
 
-    model, optimizer, scheduler = get_model_and_optimizer(
-        config.device, in_ch=config.inp_channels, num_encoding_blocks=config.num_enc_blocks
-    )
+    model, optimizer, scheduler = get_model_and_optimizer(config)
 
     train(
         train_loader,

@@ -44,8 +44,18 @@ An example of preprocessing script run, applied to the data in **examples** dire
 
 A train run is configured with a config file in a `.yaml` format. You can find an example in 
 **runs_configs** directory. If you wish to train the network with your own parameters create a copy of an existing run 
-and change the parameters you like. Don't forget to fill in your wandb project name(`wandb_project`), log in into wandb,
-and dataset directory (`dataset_dir`).
+and change the parameters you like. 
+
+This project uses [wandb](https://wandb.ai/site) for logging data during train. In order to use it too you need:
+1. Log into your wandb account
+2. Set `use_wandb` to **True** in config 
+3. Fill in `wandb_project` with your project name
+In case you don't want to use wandb train pipline will log with the help of console.
+
+In order to run train successfully you also need to fill the following variables in config:
+
+- `dataset_dir` - the path to your **_prepared_** dataset
+- `checkpoint_save_path` - the path where to store your network checkpoints
 
 After the run is configured you can run train with `run_network.py`. 
 This script takes only one required parameter - path to your config file. Here is an example:

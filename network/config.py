@@ -1,5 +1,6 @@
 import wandb
 import yaml
+import torch
 
 from datetime import datetime
 from torch import nn
@@ -19,15 +20,28 @@ class Config:
         self.wandb_proj = config_file["wandb_project"]
 
         # network parameters
-        if config_file["parameters"]["criterion_type"] == "CrossEntropyLoss":
-            self.criterion = nn.CrossEntropyLoss()
-        else:
-            raise RuntimeError("No match for criterion type")
         self.n_epochs = config_file["parameters"]["epochs"]
         self.num_enc_blocks = config_file["parameters"]["num_encoder_blocks"]
         self.inp_channels = config_file["parameters"]["input_channels"]
         self.device = config_file["parameters"]["device"]
         self.max_classes = config_file["parameters"]["max_classes"]
+
+        # loss
+        if config_file["parameters"]["criterion_type"] == "CrossEntropyLoss":
+            self.criterion = nn.CrossEntropyLoss()
+        else:
+            raise RuntimeError("No match for criterion type")
+
+        # optimizer parameters
+        if config_file["parameters"]["criterion_type"] == "CrossEntropyLoss":
+            self.optimizer = torch.optim.AdamW
+        else:
+            raise RuntimeError("No match for optimizer type")
+
+        # scheduler parameters
+        self.factor = config_file["parameters"]["scheduler"]["factor"]
+        self.patience = config_file["parameters"]["scheduler"]["patience"]
+        self.threshold = config_file["parameters"]["scheduler"]["threshold"]
 
         # loader parameters
         self.batch_size = config_file["loader"]["batch_size"]
