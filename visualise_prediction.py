@@ -74,6 +74,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
+        default="runs_configs/exp1_basic.yaml",
         help="config file for the run",
     )
     parser.add_argument(
