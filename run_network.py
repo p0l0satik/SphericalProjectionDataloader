@@ -7,7 +7,7 @@ from torch.utils.data import random_split
 
 from loader.dataset import SphericalProjectionKitti
 from network.config import Config
-from network.common_blocks import get_model_and_optimizer, train, validate
+from network.common_blocks import Network
 
 
 if __name__ == "__main__":
@@ -38,15 +38,6 @@ if __name__ == "__main__":
     test = DataLoader(
         test_loader, batch_size=config.batch_size, shuffle=True, num_workers=config.workers
     )
-
-    model, optimizer, scheduler = get_model_and_optimizer(config)
-
-    train(
-        train_loader,
-        validation_loader,
-        optimizer=optimizer,
-        model=model,
-        config=config,
-    )
-
-    validate(test_loader=test, model=model, config=config)
+    network = Network(config)
+    network.train(train_loader=train_loader, validation_loader=validation_loader)
+    network.validate(test_loader=test_loader)

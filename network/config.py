@@ -33,7 +33,7 @@ class Config:
             raise RuntimeError("No match for criterion type")
 
         # optimizer parameters
-        if config_file["parameters"]["criterion_type"] == "CrossEntropyLoss":
+        if config_file["parameters"]["optimizer_type"] == "AdamW":
             self.optimizer = torch.optim.AdamW
         else:
             raise RuntimeError("No match for optimizer type")
@@ -55,25 +55,40 @@ class Config:
         self.random_seed = config_file["other"]["random_seed"]
         self.curr_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+        if self.use_wandb:
+            self.wandb_config = dict(
+                # network params
+                n_epochs=self.n_epochs,
+                num_enc_blocks=self.num_enc_blocks,
+                inp_channels=self.inp_channels,
+                max_classes=self.max_classes,
+                device=self.device,
+                criterion=config_file["parameters"]["criterion_type"],
+                optimiser=config_file["parameters"]["optimizer_type"],
+                # scheduler parameters
+                factor=self.factor,
+                patience=self.patience,
+                threshold=self.threshold,
+                # dataset params
+                workers=self.workers,
+                batch_size=self.batch_size,
+                dataset=self.dataset,
+                train_len=self.train_len,
+                test_len=self.test_len,
+                validation_len=self.validation_len,
+                length=self.length,
+            )
+
     def prepare(self):
         self.checkpoint_dir = self.checkpoint_dir / f"{self.run_name}_{self.curr_time}"
         # create a directory for checkpoints if not exists
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         if self.use_wandb:
-            # TODO: log all parameters
-            wandb_config = dict(
-                batch_size=self.batch_size,
-                num_blocks=self.num_enc_blocks,
-                inp_channels=self.inp_channels,
-                dataset=self.dataset,
-                n_epochs=self.n_epochs,
-            )
-
             wandb.init(
                 project=self.wandb_proj,
                 notes=self.description,
-                config=wandb_config,
+                config=self.wandb_config,
                 mode="online",
             )
 

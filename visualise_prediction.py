@@ -9,7 +9,7 @@ from torch.utils.data import random_split
 from torch.utils.data import DataLoader
 
 from loader.dataset import SphericalProjectionKitti
-from network.common_blocks import get_model_and_optimizer
+from network.common_blocks import Network
 from network.config import Config
 
 
@@ -20,10 +20,11 @@ def enumerate_with_step(xs, start=0, step=5):
 
 
 def visualize_predictions(loader, config, chpt_path, iterations=1, step=5):
-    model, _, _ = get_model_and_optimizer(config)
-    model.load_state_dict(torch.load(chpt_path, map_location=torch.device(config.device)))
-    model.train(False)
-    model.to(config.device)
+    network = Network(config)
+    network.model.load_state_dict(torch.load(chpt_path, map_location=torch.device(config.device)))
+    network.model.train(False)
+    network.model.to(config.device)
+
     for i, sample in enumerate_with_step(loader, start=0, step=step):
         if i >= iterations:
             return
@@ -45,7 +46,7 @@ def visualize_predictions(loader, config, chpt_path, iterations=1, step=5):
 
         inputs = torch.tensor(inputs).to(device=config.device, dtype=torch.float)
         # Getting predictions
-        outputs = model(inputs)
+        outputs = network.model(inputs)
 
         pcd_with_predictions = o3d.geometry.PointCloud()
         mask = idx >= 0
