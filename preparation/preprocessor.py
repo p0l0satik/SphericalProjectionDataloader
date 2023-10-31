@@ -8,7 +8,7 @@ from preparation.laserscan import LaserScan
 
 class SphericalProjectionKittiPreprocessor(Dataset):
     def __init__(
-        self, main_directory, length, use_ransac=True, add_road=True, visualise_ransac=True
+        self, main_directory, length, use_ransac=True, add_road=True, visualise_ransac=False
     ) -> None:
         super().__init__()
         self.ls = LaserScan(visualise_ransac=visualise_ransac)
